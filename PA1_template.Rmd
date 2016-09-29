@@ -1,25 +1,115 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
+title: "ReproducibleResearchProject1"
+author: "Lazar Kirven"
+date: "September 28, 2016"
+output: html_document
 ---
 
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
 
-## Loading and preprocessing the data
+## R Markdown for Reproducible Research Project 1
+
+```{r message=FALSE}
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+
+setwd("/Users/lazar/Code/R/ReproducibleResearch-project1/RepData_PeerAssessment1")
+targetFile <- unz(description="activity.zip", filename="activity.csv")
+rawData <- read.csv(targetFile, header = TRUE)
+table1 <- tbl_df(rawData)
+table2 <- tbl_df(rawData)
+table1[is.na(table1)] <- 0
+
+# Question 1
+grouped_t1 <- group_by(table1, date)
+summary1 <- summarize(grouped_t1, numsteps=sum(steps))
+mymean1 <- mean(summary1$numsteps)
+mymedian1 <- median(summary1$numsteps)
+# Question 2
+grouped_t2 <- group_by(table1, interval)
+summary2 <- summarize(grouped_t2, averagesteps=mean(steps))
+activeInterval <- filter(summary2, averagesteps == max(averagesteps))$interval
+# Question 3
+missing <- table2 %>% filter(is.na(steps))
+numMissingRows <- nrow(missing)
+replacementStrategy <- mutate(summary2, projectedsteps = round(averagesteps, digits = 0))
+table2 <- mutate(table2, projsteps = ifelse(is.na(steps), (ifelse(interval==replacementStrategy$interval, replacementStrategy$projectedsteps, 0)), steps))
+table2 <- select(table2, projsteps, date, interval)
+table2 <- rename(table2, steps = projsteps)
+grouped_t3 <- group_by(table2, date)
+summary3 <- summarize(grouped_t3, numsteps=sum(steps))
+mymean3 <- mean(summary3$numsteps)
+mymedian3 <- median(summary3$numsteps)
+# Question 4
+table4 <- mutate(table2, weekInd = ifelse(wday(date)==1|wday(date)==7, "weekend", "weekday"))
+```
+
+**What is mean total number of steps taken per day?**  
+
+*(1) Dataset listing the total number of steps taken per day *  
+```{r}
+summary1
+```
+
+*(2) Histogram *  
+```{r}
+qplot(summary1$numsteps, geom="histogram")
+```
+
+*(3) Calculate and report the mean and median *  
+Mean of the total number of steps taken per day is `r format(mymean1, scientific=FALSE)`  
+Median of the total number of steps taken per day is `r format(mymedian1, scientific=FALSE)`
+
+**What is the average daily activity pattern?**  
+
+*(1) Time series plot *  
+```{r}
+qplot(x=interval, y=averagesteps, data=summary2, geom = "line", xlab = "5-Min Interval Ids", ylab = "Average # Of Steps")
+```
+
+*(2) Most active interval on average is: * `r activeInterval`  
+
+**Inputing missing values** 
+
+*(1) Total number of missing values: * `r  numMissingRows`  
+
+*(2) Replacement strategy is to replace 'NA' values with an average number number of steps for that particular 5-minute interval *
+```{r}
+replacementStrategy
+```
+
+*(3) New dataset with replacement strategy *
+```{r}
+table2
+```
+*(4) Histogram *  
+```{r}
+qplot(summary3$numsteps, geom="histogram")
+```  
+
+Mean of the total number of steps taken per day is `r format(mymean3, scientific=FALSE)`   
+Median of the total number of steps taken per day is `r format(mymedian3, scientific=FALSE)`  
+
+*(a) Do these values differ from the estimates from the first part of the assignment? What is the impact of imputing missing data on the estimates of the total daily number of steps?*  
+
+The median values are the same, but the mean are different.  First part of the assigment has a lower mean value. The impact is the mean value is higher since I replaced the 'NA' values with an average steps for that 5-minute interval.
 
 
+**Are there differences in activity patterns between weekdays and weekends?**
 
-## What is mean total number of steps taken per day?
+*(1) New dataset with new week indicator factor *   
+```{r}
+table4
+```
+*(2) Make panel plot containing a time series plot of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis) *   
 
+```{r}
+ggplot(table4, aes(x = interval, y = steps, group = weekInd)) + geom_line() +
+    facet_grid(weekInd~.) +
+    xlab("Interval") + 
+    ylab("Number of steps")
+```
 
-
-## What is the average daily activity pattern?
-
-
-
-## Imputing missing values
-
-
-
-## Are there differences in activity patterns between weekdays and weekends?
